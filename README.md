@@ -110,7 +110,7 @@ docker container exec -it kafka-standalone bash
   - the brokers automatically switch to using the offline table for segments for that time period
   - and use realtime table only for data not available in offline table
 
-## Before batch test**
+## Before batch test
 
 200,Lucy,Smith,Female,Maths,3.8,1570863600000 ( offline data )
 
@@ -144,3 +144,11 @@ You'll notice that a new record is being shown ( i.e. for 1612151387000 )
 
 * The tenants section in both the OFFLINE and realtime tables must be same, otherwise HYBRID table
   would not be formed
+
+References
+==========
+https://docs.pinot.apache.org/basics/getting-started
+
+https://docs.pinot.apache.org/basics/getting-started/pushing-your-data-to-pinot
+
+https://docs.pinot.apache.org/basics/getting-started/pushing-your-streaming-data-to-pinot
