@@ -57,33 +57,62 @@ Schema is used to define the columns and data types of the Pinot table :
 
 ```json
 {
-  "tableName": "transcript",
-  "tableType": "REALTIME",
-  "segmentsConfig": {
-    "timeColumnName": "timestampInEpoch",
-    "timeType": "MILLISECONDS",
-    "schemaName": "transcript",
-    "replicasPerPartition": "1"
-  },
-  "tenants": {},
-  "tableIndexConfig": {
-    "loadMode": "MMAP",
-    "streamConfigs": {
-      "streamType": "kafka",
-      "realtime.segment.flush.threshold.size": "0",
-      "realtime.segment.flush.threshold.time": "1h",
-      "realtime.segment.flush.desired.size": "50M",
-      "stream.kafka.consumer.type": "lowlevel",
-      "stream.kafka.broker.list": "LM0001680:39092",
-      "stream.kafka.topic.name": "transcript-realtime",
-      "stream.kafka.decoder.class.name": "org.apache.pinot.plugin.stream.kafka.KafkaJSONMessageDecoder",
-      "stream.kafka.consumer.factory.class.name": "org.apache.pinot.plugin.stream.kafka20.KafkaConsumerFactory",
-      "stream.kafka.consumer.prop.auto.offset.reset": "smallest"
-    }
-  },
-  "metadata": {
-    "customConfigs": {}
-  }
+   "tableName":"transcript",
+   "tableType":"REALTIME",
+   "segmentsConfig":{
+      "timeColumnName":"timestampInEpoch",
+      "timeType":"MILLISECONDS",
+      "schemaName":"transcript",
+      "replicasPerPartition":"1"
+   },
+   "tenants":{
+      
+   },
+   "fieldConfigList":[
+      {
+         "name":"firstName",
+         "encodingType":"RAW",
+         "indexType":"TEXT"
+      },
+      {
+         "name":"lastName",
+         "encodingType":"RAW",
+         "indexType":"TEXT"
+      }
+   ],
+   "tableIndexConfig":{
+      "bloomFilterColumns":[
+         "studentID"
+      ],
+      "noDictionaryColumns":[
+         "firstName",
+         "lastName"
+      ],
+      "invertedIndexColumns":[
+         "subject"
+      ],
+      "sortedColumn":[
+         "gender"
+      ],
+      "loadMode":"MMAP",
+      "streamConfigs":{
+         "streamType":"kafka",
+         "realtime.segment.flush.threshold.size":"0",
+         "realtime.segment.flush.threshold.time":"1h",
+         "realtime.segment.flush.desired.size":"50M",
+         "stream.kafka.consumer.type":"lowlevel",
+         "stream.kafka.broker.list":"LM0001680:39092",
+         "stream.kafka.topic.name":"transcript-realtime",
+         "stream.kafka.decoder.class.name":"org.apache.pinot.plugin.stream.kafka.KafkaJSONMessageDecoder",
+         "stream.kafka.consumer.factory.class.name":"org.apache.pinot.plugin.stream.kafka20.KafkaConsumerFactory",
+         "stream.kafka.consumer.prop.auto.offset.reset":"smallest"
+      }
+   },
+   "metadata":{
+      "customConfigs":{
+         
+      }
+   }
 }
 ```
 
@@ -122,17 +151,13 @@ kafka-topics.sh \
 Push sample JSON into Kafka topic, using the Kafka script from the Kafka download
 
 ```bash
+vi ${HOME}/volumes/kafka/samples/transcript.json # copy & paste the above data 
+
 docker container exec -it kafka-standalone bash
-
-mkdir /tmp/data
-
-cd /tmp/data
-
-vi transcript.json # copy & paste the above data 
 
 kafka-console-producer.sh \
 --broker-list localhost:9092 \
---topic transcript-realtime < /tmp/data/transcript.json
+--topic transcript-realtime < /opt/samples/transcript.json
 ```
 
 ## Uploading your schema and table config
@@ -156,4 +181,3 @@ docker container exec -it pinot-controller bash
 -tableName transcript \
 -state drop 
 ```
-

@@ -1,8 +1,15 @@
 # Apache Pinot Demo
 
+* Create an external network to bind all the components together
+
+```bash
+docker network create sandbox
+```
+
 ## Spin Up Pinot 
 
 ```bash
+# Create local directories for mounting volumes
 mkdir -p ${HOME}/volumes/pinot/zookeeper/data
 mkdir -p ${HOME}/volumes/pinot/zookeeper/datalog
 mkdir -p ${HOME}/volumes/pinot/controller
@@ -72,12 +79,10 @@ bin/zkCli.sh
 
 ## Setup Kafka
 
-mkdir -p ${HOME}/volumes/kafka
-chmod -R ugo+rwx ${HOME}/volumes/kafka
+mkdir -p ${HOME}/volumes/kafka/data
+mkdir -p ${HOME}/volumes/kafka/samples
 
 docker pull wurstmeister/kafka
-
-KAFKA_HOME=${HOME}/volumes/kafka
 
 docker container run -d \
 -p 39092:9092 \
@@ -88,7 +93,8 @@ docker container run -d \
 -e KAFKA_BROKER_ID=1 \
 -e KAFKA_ZOOKEEPER_CONNECT=zookeeper-standalone:2181 \
 -e ZK=zk \
--v ${KAFKA_HOME}/data:/kafka \
+-v ${HOME}/volumes/kafka/data:/kafka \
+-v ${HOME}/volumes/kafka/samples:/opt/samples \
 -t wurstmeister/kafka
 
 ## Housekeeping
