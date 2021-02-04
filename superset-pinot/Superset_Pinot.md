@@ -26,3 +26,11 @@ http://localhost:30092
 ```
 presto://presto-standalone:8080/pinot/default
 ```
+
+## Sqllab View
+
+![Superset sqllab](Superset_Sqllab.png)
+
+## Sample Dashboard
+
+![Superset Pinot Dashboard](wikipedia-clickstream-dashboard.jpg)
