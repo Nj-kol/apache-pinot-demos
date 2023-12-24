@@ -1,4 +1,3 @@
-
 # Batch Ingestion
 
 ## Preparing your data
@@ -21,7 +20,7 @@ studentID,firstName,lastName,gender,subject,score,timestampInEpoch
 202,Nick,Young,Male,Physics,3.6,1572418800000
 ```
 
-## Creating a schema
+## Creating a schema & table
 
 Schema is used to define the columns and data types of the Pinot table :
 
@@ -67,11 +66,10 @@ Schema is used to define the columns and data types of the Pinot table :
 }
 ```
 
-## Creating a table config
+### Creating a table config
 
 * A table config is used to define the config related to the Pinot table. 
-
-Here's the table config for the sample CSV file. You can use this as a reference to build your own table config. Simply edit the `tableName` and `schemaName`
+Here's the table config for the sample CSV file.
 
 `${HOME}/volumes/pinot/samples/transcript/transcript-table-offline.json`
 
@@ -95,14 +93,14 @@ Here's the table config for the sample CSV file. You can use this as a reference
 }
 ```
 
-## Uploading your table config and schema
+### Uploading your table config and schema
 
 ```bash
-docker container exec -it pinot-controller bash
-
+docker container exec -it pinot-controller \
 /opt/pinot/bin/pinot-admin.sh AddTable \
--tableConfigFile /opt/pinot/samples/transcript/transcript-table-offline.json \
--schemaFile /opt/pinot/samples/transcript/transcript-schema.json -exec
+-tableConfigFile /opt/examples/batch/transcript/transcript-table-offline.json \
+-schemaFile /opt/examples/batch/transcript/transcript-schema.json \
+-exec
 ```
 
 * Response :
@@ -132,10 +130,14 @@ executionFrameworkSpec:
   segmentGenerationJobRunnerClassName: 'org.apache.pinot.plugin.ingestion.batch.standalone.SegmentGenerationJobRunner'
   segmentTarPushJobRunnerClassName: 'org.apache.pinot.plugin.ingestion.batch.standalone.SegmentTarPushJobRunner'
   segmentUriPushJobRunnerClassName: 'org.apache.pinot.plugin.ingestion.batch.standalone.SegmentUriPushJobRunner'
+  segmentMetadataPushJobRunnerClassName: 'org.apache.pinot.plugin.ingestion.batch.standalone.SegmentMetadataPushJobRunner'
+
+# Recommended to set jobType to SegmentCreationAndMetadataPush for production environment where Pinot Deep Store is configured  
 jobType: SegmentCreationAndTarPush
-inputDirURI: '/opt/pinot/samples/transcript/rawdata/'
+
+inputDirURI: '/opt/examples/data/'
 includeFileNamePattern: 'glob:**/*.csv'
-outputDirURI: '/opt/segments'
+outputDirURI: '/opt/pinot/data/segments/'
 overwriteOutput: true
 pinotFSSpecs:
   - scheme: file
@@ -146,10 +148,11 @@ recordReaderSpec:
   configClassName: 'org.apache.pinot.plugin.inputformat.csv.CSVRecordReaderConfig'
 tableSpec:
   tableName: 'transcript'
-  schemaURI: 'http://pinot-controller:9000/tables/transcript/schema'
-  tableConfigURI: 'http://pinot-controller:9000/tables/transcript'
 pinotClusterSpecs:
-  - controllerURI: 'http://pinot-controller:9000'
+  - controllerURI: 'http://localhost:9000'
+pushJobSpec:
+  pushAttempts: 2
+  pushRetryIntervalMillis: 1000
 ```
 
 Note : The path specified on the job spec are local to the controller (and not the server)
@@ -161,23 +164,16 @@ Note : The path specified on the job spec are local to the controller (and not t
 
 * Use the following command to generate a segment and upload it
 
-```bash
-docker container exec -it pinot-controller bash
-
+```shell
+docker container exec -it pinot-controller \
 /opt/pinot/bin/pinot-admin.sh LaunchDataIngestionJob \
--jobSpecFile /opt/pinot/samples/transcript/batch-job-spec.yml 
+-jobSpecFile /opt/examples/batch/transcript/batch-job-spec.yaml
 ```
 
-* Response :
-
-```json
-{"status":"Successfully uploaded segment: transcript_OFFLINE_1570863600000_1572418800000_0 of table: transcript"}
-```
-
-* In this case, the segment has been created on the local file system under : `/tmp/pinot-quick-start/segments/`
+* In this case, the segment has been created on S3 under : `s3://pinot/controller-data/transcript`
 
   `transcript_OFFLINE_1570863600000_1572418800000_0.tar.gz`
 
-References
-==========
+## References
+
 https://docs.pinot.apache.org/basics/getting-started/pushing-your-data-to-pinot

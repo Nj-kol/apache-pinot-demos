@@ -1,0 +1,54 @@
+version: '3.7'
+services:
+  pinot-zookeeper:
+    image: zookeeper:3.5.6
+    container_name: pinot-zookeeper
+    ports:
+      - "2182:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    volumes:
+      - ./volumes/zookeeper/data:/data
+      - ./volumes/zookeeper/datalog:/datalog
+  pinot-controller:
+    image: apachepinot/pinot:0.12.0
+    command: "StartController -zkAddress pinot-zookeeper:2181 -configFileName /opt/pinot/conf/pinot-controller.conf"
+    container_name: pinot-controller
+    restart: unless-stopped
+    ports:
+      - "9120:9000"
+    environment:
+      JAVA_OPTS: "-Dplugins.dir=/opt/pinot/plugins -Xms1G -Xmx4G -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Xloggc:gc-pinot-controller.log"
+    volumes:
+      - ./volumes/examples:/opt/examples
+      - ./volumes/controller/data:/opt/pinot/data
+      - ./volumes/controller/pinot-controller.conf:/opt/pinot/conf/pinot-controller.conf
+    depends_on:
+      - pinot-zookeeper
+  pinot-broker:
+    image: apachepinot/pinot:0.12.0
+    command: "StartBroker -zkAddress pinot-zookeeper:2181 -configFileName /opt/pinot/conf/pinot-broker.conf"
+    restart: unless-stopped
+    container_name: "pinot-broker"
+    ports:
+      - "8099:8099"
+    environment:
+      JAVA_OPTS: "-Dplugins.dir=/opt/pinot/plugins -Xms4G -Xmx4G -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Xloggc:gc-pinot-broker.log"
+    volumes:
+      - ./volumes/broker/pinot-broker.conf:/opt/pinot/conf/pinot-broker.conf
+    depends_on:
+      - pinot-controller
+  pinot-server:
+    image: apachepinot/pinot:0.12.0
+    command: "StartServer -zkAddress pinot-zookeeper:2181 -configFileName /opt/pinot/conf/pinot-server.conf"
+    restart: unless-stopped
+    container_name: "pinot-server"
+    ports:
+      - "8098:8098"
+    environment:
+      JAVA_OPTS: "-Dplugins.dir=/opt/pinot/plugins -Xms4G -Xmx16G -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Xloggc:gc-pinot-server.log"
+    volumes:
+      - ./volumes/server/pinot-server.conf:/opt/pinot/conf/pinot-server.conf
+    depends_on:
+      - pinot-broker

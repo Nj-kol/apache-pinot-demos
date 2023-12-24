@@ -31,26 +31,9 @@ for row in curs:
     print(row)
 ```
 
-## With SqlAlchemy
 
-```python
-from sqlalchemy import *
-from sqlalchemy.engine import create_engine
-from sqlalchemy.schema import *
+## References
 
-# uses HTTP by default. The first port is that of the broker
-engine = create_engine('pinot://localhost:8099/query/sql?controller=http://localhost:9000/') 
-query = "select * from transcript where studentID=200"
-result = engine.execute(query)
-
-for row in result:
-    print(row)
-
-result.close()
-````
-
-References
-==========
 https://github.com/python-pinot-dbapi/pinot-dbapi
 
 https://pypi.org/project/pinotdb/
