@@ -16,7 +16,7 @@ gzip -d 2017_01_en_clickstream.tsv.gz
 * The dataset is large, so we will only take a sample of the data and also convert it into JSON so that
   it can be fed to a Kafka topic
 
-```java
+```scala
 import org.apache.spark.sql.Encoders
 import org.apache.spark.sql.functions
 
@@ -240,8 +240,8 @@ WHERE article_name ='Akkadian_Empire'
 GROUP BY referrer
 ```
 
-References
-==========
+## References
+
 https://github.com/IBM/kafka-streaming-click-analysis
 
 https://meta.wikimedia.org/wiki/Research:Wikipedia_clickstream

@@ -23,32 +23,27 @@ docker-compose -f supporting.yaml down
 export AWS_ACCESS_KEY_ID=minio
 export AWS_SECRET_ACCESS_KEY=minio123
 
+## Create a new bucket for Pinot
 aws s3 mb \
 s3://pinot \
---endpoint-url http://msi:9000
+--endpoint-url http://<your_ip>:9000
 
 aws s3 ls \
---endpoint-url http://msi:9000
+--endpoint-url http://<your_ip>:9000
 ```
-
 
 ### Kafka Client
 
 ```shell
-brew install kcat
+brew install librdkafka
+
+pip install confluent-kafka
 ```
 
 Produce some data 
 
 ```shell
-## Produce
-kcat -b localhost:9092 -t test -P
- 
-## List topics
-kcat -b localhost:9092 -L
-
-## See message 
-kcat -b localhost:9092 -t source-users-sftp
+## Producer
 ```
 
 

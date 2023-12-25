@@ -2,14 +2,12 @@
 # Stream Ingestion Example
 
 ## Create a schema
-
-Schema is used to define the columns and data types of the Pinot table :
-
-`${HOME}/volumes/pinot/samples/transcript/transcript-schema.json`
+* Schema is used to define the columns and data types of the Pinot table
+* In the file : `pinot/volumes/examples/streaming/transcript/transcript-realtime-schema.json`
 
 ```json
 {
-  "schemaName": "transcript",
+  "schemaName": "transcript-realtime",
   "dimensionFieldSpecs": [
     {
       "name": "studentID",
@@ -39,7 +37,7 @@ Schema is used to define the columns and data types of the Pinot table :
     }
   ],
   "dateTimeFieldSpecs": [{
-    "name": "timestampInEpoch",
+    "name": "timestamp",
     "dataType": "LONG",
     "format" : "1:MILLISECONDS:EPOCH",
     "granularity": "1:MILLISECONDS"
@@ -48,12 +46,8 @@ Schema is used to define the columns and data types of the Pinot table :
 ```
 
 ## Creating a table config
-
-* Similar to the offline table config, we will create a realtime table config for the sample.
-
-* Here's the realtime table config for the transcript table. 
-
-`${HOME}/volumes/pinot/samples/transcript/transcript-table-realtime.json`
+* Similar to the offline table config, we will create a realtime table config for the sample
+* In the file : `pinot/volumes/examples/streaming/transcript//transcript-table-realtime.json`
 
 ```json
 {
@@ -114,64 +108,77 @@ Schema is used to define the columns and data types of the Pinot table :
       }
    }
 }
-```
 
-## Insert data into Kafka
 
-```bash
-docker container exec -it kafka-standalone bash
-
-# Create a Kafka Topic
-
-kafka-topics.sh \
---create \
---zookeeper zookeeper-standalone:2181 \
---partitions 3 \
---replication-factor 1 \
---topic transcript-realtime
-```
-
-**Loading sample data into stream***
-
-```json
-{"studentID":205,"firstName":"Natalie","lastName":"Jones","gender":"Female","subject":"Maths","score":3.8,"timestampInEpoch":1571900400000}
-{"studentID":205,"firstName":"Natalie","lastName":"Jones","gender":"Female","subject":"History","score":3.5,"timestampInEpoch":1571900400000}
-{"studentID":207,"firstName":"Bob","lastName":"Lewis","gender":"Male","subject":"Maths","score":3.2,"timestampInEpoch":1571900400000}
-{"studentID":207,"firstName":"Bob","lastName":"Lewis","gender":"Male","subject":"Chemistry","score":3.6,"timestampInEpoch":1572418800000}
-{"studentID":209,"firstName":"Jane","lastName":"Doe","gender":"Female","subject":"Geography","score":3.8,"timestampInEpoch":1572505200000}
-{"studentID":209,"firstName":"Jane","lastName":"Doe","gender":"Female","subject":"English","score":3.5,"timestampInEpoch":1572505200000}
-{"studentID":209,"firstName":"Jane","lastName":"Doe","gender":"Female","subject":"Maths","score":3.2,"timestampInEpoch":1572678000000}
-{"studentID":209,"firstName":"Jane","lastName":"Doe","gender":"Female","subject":"Physics","score":3.6,"timestampInEpoch":1572678000000}
-{"studentID":211,"firstName":"John","lastName":"Doe","gender":"Male","subject":"Maths","score":3.8,"timestampInEpoch":1572678000000}
-{"studentID":211,"firstName":"John","lastName":"Doe","gender":"Male","subject":"English","score":3.5,"timestampInEpoch":1572678000000}
-{"studentID":211,"firstName":"John","lastName":"Doe","gender":"Male","subject":"History","score":3.2,"timestampInEpoch":1572854400000}
-{"studentID":212,"firstName":"Nick","lastName":"Young","gender":"Male","subject":"History","score":3.6,"timestampInEpoch":1572854400000}
-```
-
-Push sample JSON into Kafka topic, using the Kafka script from the Kafka download
-
-```bash
-vi ${HOME}/volumes/kafka/samples/transcript.json # copy & paste the above data 
-
-docker container exec -it kafka-standalone bash
-
-kafka-console-producer.sh \
---broker-list localhost:9092 \
---topic transcript-realtime < /opt/samples/transcript.json
+{
+  "tableName": "transcript-realtime",
+  "tableType": "REALTIME",
+  "segmentsConfig": {
+    "timeColumnName": "timestamp",
+    "timeType": "MILLISECONDS",
+    "schemaName": "transcript",
+    "replicasPerPartition": "1"
+  },
+  "tenants": {},
+  "tableIndexConfig": {
+      "bloomFilterColumns":[
+         "studentID"
+      ],
+      "noDictionaryColumns":[
+         "firstName",
+         "lastName"
+      ],
+      "invertedIndexColumns":[
+         "subject"
+      ],
+      "sortedColumn":[
+         "gender"
+      ],
+      "loadMode": "MMAP",
+  },
+  "metadata": {
+    "customConfigs": {}
+  },
+  "ingestionConfig": {
+    "streamIngestionConfig": {
+        "streamConfigMaps": [
+          {
+            "realtime.segment.flush.threshold.rows": "0",
+            "stream.kafka.decoder.prop.format": "JSON",
+            "key.serializer": "org.apache.kafka.common.serialization.ByteArraySerializer",
+            "stream.kafka.decoder.class.name": "org.apache.pinot.plugin.stream.kafka.KafkaJSONMessageDecoder",
+            "streamType": "kafka",
+            "value.serializer": "org.apache.kafka.common.serialization.ByteArraySerializer",
+            "stream.kafka.consumer.type": "LOWLEVEL",
+            "realtime.segment.flush.threshold.segment.rows": "50000",
+            "stream.kafka.broker.list": "localhost:9092",
+            "realtime.segment.flush.threshold.time": "3600000",
+            "stream.kafka.consumer.factory.class.name": "org.apache.pinot.plugin.stream.kafka20.KafkaConsumerFactory",
+            "stream.kafka.consumer.prop.auto.offset.reset": "smallest",
+            "stream.kafka.topic.name": "transcripts"
+          }
+        ]
+      },
+      "transformConfigs": [],
+      "continueOnError": true,
+      "rowTimeValueCheck": true,
+      "segmentTimeValueCheck": false
+    },
+    "isDimTable": false
+}
 ```
 
 ## Uploading your schema and table config
 
 * Now that we have our table and schema, let's upload them to the cluster. 
 * As soon as the realtime table is created, it will begin ingesting from the Kafka topic
-* The command needs to be executed on the controlled node
+* The command needs to be executed on the controller node
 
 ```bash
-docker container exec -it pinot-controller bash
-
+docker container exec -it pinot-controller \
 /opt/pinot/bin/pinot-admin.sh AddTable \
--schemaFile /opt/pinot/samples/transcript/transcript-schema.json \
--tableConfigFile /opt/pinot/samples/transcript/transcript-table-realtime.json \
+-schemaFile /opt/examples/streaming/transcript/transcript-realtime-schema.json \
+-tableConfigFile /opt/examples/streaming/transcript/transcript-table-realtime.json \
 -controllerHost pinot-controller \
 -controllerPort 9000 \
 -exec
@@ -181,3 +188,34 @@ docker container exec -it pinot-controller bash
 -tableName transcript \
 -state drop 
 ```
+
+## Insert data into Kafka
+
+**Create a Kafka Topic**
+
+```bash
+docker container exec -it kafka \
+kafka-topics \
+--create \
+--bootstrap-server localhost:9092 \
+--partitions 1 \
+--replication-factor 1 \
+--topic transcripts
+```
+
+**Loading sample data into stream**
+
+Push sample JSON into Kafka topic, using the `producer.py` script from `clients` folder in the repo
+
+```shell
+python cproducer.py \
+--broker-list "localhost:9092" \
+--topic transcripts \
+--file-path "ingestion-demos/streaming/simple-stream-ingestion/transcripts.json"
+```
+
+## See data
+
+**Pinot**
+
+**Superset**
