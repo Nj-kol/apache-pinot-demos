@@ -40,8 +40,8 @@ You'll notice that a new record is being shown ( i.e. for 1612151387000 )
 * The tenants section in both the OFFLINE and realtime tables must be same, otherwise HYBRID table
   would not be formed
 
-References
-==========
+## References
+
 https://docs.pinot.apache.org/basics/getting-started
 
 https://docs.pinot.apache.org/basics/getting-started/pushing-your-data-to-pinot

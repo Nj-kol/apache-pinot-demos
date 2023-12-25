@@ -247,3 +247,14 @@ https://github.com/IBM/kafka-streaming-click-analysis
 https://meta.wikimedia.org/wiki/Research:Wikipedia_clickstream
  
 https://figshare.com/articles/dataset/Wikipedia_Clickstream/1305770
+
+
+### Demo
+
+## Sqllab View
+
+![Superset sqllab](Superset_Sqllab.png)
+
+## Sample Dashboard
+
+![Superset Pinot Dashboard](wikipedia-clickstream-dashboard.jpg)

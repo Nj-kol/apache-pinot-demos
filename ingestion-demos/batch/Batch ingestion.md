@@ -5,12 +5,10 @@
 **Host machine**
 
 ```bash
-mkdir -p ${HOME}/volumes/pinot/server/data/rawdata
+mkdir -p ${REPO_LOCATION}/pinot/volumes/examples/batch/transcript/data
 ```
 
-If you don't have sample data, you can use this sample CSV
-
-( `${HOME}/volumes/pinot/server/data/rawdata/transcript.csv` )
+If you don't have sample data, you can use this sample CSV ( `${REPO_LOCATION}/pinot/volumes/examples/batch/transcript.csv` )
 
 ```csv
 studentID,firstName,lastName,gender,subject,score,timestampInEpoch
@@ -24,7 +22,7 @@ studentID,firstName,lastName,gender,subject,score,timestampInEpoch
 
 Schema is used to define the columns and data types of the Pinot table :
 
-`${HOME}/volumes/pinot/samples/transcript/transcript-schema.json`
+`${REPO_LOCATION}/pinot/volumes/examples/batch/transcript/transcript-schema.json`
 
 ```json
 {
@@ -68,10 +66,11 @@ Schema is used to define the columns and data types of the Pinot table :
 
 ### Creating a table config
 
-* A table config is used to define the config related to the Pinot table. 
+A table config is used to define the config related to the Pinot table. 
+
 Here's the table config for the sample CSV file.
 
-`${HOME}/volumes/pinot/samples/transcript/transcript-table-offline.json`
+`${REPO_LOCATION}/pinot/volumes/examples/batch/transcript-table-offline.json`
 
 
 ```json
@@ -109,20 +108,17 @@ docker container exec -it pinot-controller \
 {"status":"Table transcript_OFFLINE succesfully added"}
 ```
 
-## Creating a segment
+## Ingestion
 
 * A Pinot table's data is stored as Pinot segments.
-
 * ***To generate a segment, we need to first create a job spec yaml file***
-
 * JobSpec yaml file has all the information regarding :
   - data format
   - input data location 
   - and pinot cluster coordinates.
 
-  You can just copy over this job spec file. 
-
-  `${HOME}/volumes/pinot/samples/transcript/batch-job-spec.yml`
+* You can just copy over this job spec file : 
+  `${REPO_LOCATION}/pinot/volumes/examples/batch/batch-job-spec.yml`
 
 ```yaml
 executionFrameworkSpec:
@@ -135,7 +131,7 @@ executionFrameworkSpec:
 # Recommended to set jobType to SegmentCreationAndMetadataPush for production environment where Pinot Deep Store is configured  
 jobType: SegmentCreationAndTarPush
 
-inputDirURI: '/opt/examples/data/'
+inputDirURI: '/opt/examples/batch/transcript/data/'
 includeFileNamePattern: 'glob:**/*.csv'
 outputDirURI: '/opt/pinot/data/segments/'
 overwriteOutput: true
