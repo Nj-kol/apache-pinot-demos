@@ -1,5 +1,5 @@
 {
-    "schemaName": "transcript",
+    "schemaName": "transcript-realtime",
     "dimensionFieldSpecs": [
       {
         "name": "studentID",
