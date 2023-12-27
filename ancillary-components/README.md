@@ -32,20 +32,6 @@ aws s3 ls \
 --endpoint-url http://<your_ip>:9000
 ```
 
-### Kafka Client
-
-```shell
-brew install librdkafka
-
-pip install confluent-kafka
-```
-
-Produce some data 
-
-```shell
-## Producer
-```
-
 
 ## UI(s)
 
