@@ -38,8 +38,12 @@ pinot.controller.storage.factory.s3.secretKey=minio123
 ## Start
 docker-compose -f pinot-standalone.yml up -d
 
+docker-compose -f pinot-compose.yml up -d
+
 ## Stop
 docker-compose -f pinot-standalone.yml down
+
+docker-compose -f pinot-compose.yml down
 ```
 
 UI : http://localhost:9210/#/query
@@ -50,14 +54,6 @@ UI : http://localhost:9210/#/query
 docker logs pinot-controller
 
 docker exec -it pinot-controller bash
-
-docker logs pinot-broker
-
-docker exec -it pinot-broker bash
-
-docker logs pinot-server
-
-docker exec -it pinot-server bash
 ```
 
 ## References

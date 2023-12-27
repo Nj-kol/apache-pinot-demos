@@ -1,68 +1,43 @@
 {
-    "tableName": "transcript-realtime",
-    "tableType": "REALTIME",
-    "segmentsConfig": {
-      "timeColumnName": "timestamp",
-      "timeType": "MILLISECONDS",
-      "schemaName": "transcript-realtime",
-      "replicasPerPartition": "1"
-    },
-    "tenants": {},
-    "fieldConfigList":[
-        {
-           "name":"firstName",
-           "encodingType":"RAW",
-           "indexType":"TEXT"
-        },
-        {
-           "name":"lastName",
-           "encodingType":"RAW",
-           "indexType":"TEXT"
-        }
-     ],
-    "tableIndexConfig": {
-        "bloomFilterColumns":[
-           "studentID"
-        ],
-        "noDictionaryColumns":[
-           "firstName",
-           "lastName"
-        ],
-        "invertedIndexColumns":[
-           "subject"
-        ],
-        "sortedColumn":[
-           "gender"
-        ],
-        "loadMode": "MMAP"
-    },
-    "metadata": {
-      "customConfigs": {}
-    },
-    "ingestionConfig": {
-      "streamIngestionConfig": {
-          "streamConfigMaps": [
-            {
-              "realtime.segment.flush.threshold.rows": "0",
-              "stream.kafka.decoder.prop.format": "JSON",
-              "key.serializer": "org.apache.kafka.common.serialization.ByteArraySerializer",
-              "stream.kafka.decoder.class.name": "org.apache.pinot.plugin.stream.kafka.KafkaJSONMessageDecoder",
-              "streamType": "kafka",
-              "value.serializer": "org.apache.kafka.common.serialization.ByteArraySerializer",
-              "stream.kafka.consumer.type": "LOWLEVEL",
-              "realtime.segment.flush.threshold.segment.rows": "50000",
-              "stream.kafka.broker.list": "192.168.0.152:9092",
-              "realtime.segment.flush.threshold.time": "3600000",
-              "stream.kafka.consumer.factory.class.name": "org.apache.pinot.plugin.stream.kafka20.KafkaConsumerFactory",
-              "stream.kafka.consumer.prop.auto.offset.reset": "smallest",
-              "stream.kafka.topic.name": "transcripts"
-            }
-          ]
-        },
-        "transformConfigs": [],
-        "continueOnError": true,
-        "rowTimeValueCheck": true,
-        "segmentTimeValueCheck": false
-      },
-      "isDimTable": false
-  }
+   "tableName": "transcript",
+   "tableType": "REALTIME",
+   "segmentsConfig": {
+     "timeColumnName": "timestamp",
+     "timeType": "MILLISECONDS",
+     "schemaName": "transcript",
+     "replicasPerPartition": "1"
+   },
+   "tenants": {},
+   "tableIndexConfig": {
+     "loadMode": "MMAP"
+   },
+   "metadata": {
+     "customConfigs": {}
+   },
+   "ingestionConfig": {
+     "streamIngestionConfig": {
+         "streamConfigMaps": [
+           {
+             "realtime.segment.flush.threshold.rows": "0",
+             "stream.kafka.decoder.prop.format": "JSON",
+             "key.serializer": "org.apache.kafka.common.serialization.ByteArraySerializer",
+             "stream.kafka.decoder.class.name": "org.apache.pinot.plugin.stream.kafka.KafkaJSONMessageDecoder",
+             "streamType": "kafka",
+             "value.serializer": "org.apache.kafka.common.serialization.ByteArraySerializer",
+             "stream.kafka.consumer.type": "LOWLEVEL",
+             "realtime.segment.flush.threshold.segment.rows": "50000",
+             "stream.kafka.broker.list": "kafka:19092",
+             "realtime.segment.flush.threshold.time": "3600000",
+             "stream.kafka.consumer.factory.class.name": "org.apache.pinot.plugin.stream.kafka20.KafkaConsumerFactory",
+             "stream.kafka.consumer.prop.auto.offset.reset": "smallest",
+             "stream.kafka.topic.name": "transcript"
+           }
+         ]
+       },
+       "transformConfigs": [],
+       "continueOnError": true,
+       "rowTimeValueCheck": true,
+       "segmentTimeValueCheck": false
+     },
+     "isDimTable": false
+   }

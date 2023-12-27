@@ -8,9 +8,6 @@ services:
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
-    volumes:
-      - ./volumes/zookeeper/data:/data
-      - ./volumes/zookeeper/datalog:/datalog
   pinot-controller:
     image: apachepinot/pinot:0.12.0
     command: "StartController -zkAddress pinot-zookeeper:2181 -configFileName /opt/pinot/conf/pinot-controller.conf"
@@ -22,7 +19,6 @@ services:
       JAVA_OPTS: "-Dplugins.dir=/opt/pinot/plugins -Xms1G -Xmx4G -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Xloggc:gc-pinot-controller.log"
     volumes:
       - ./volumes/examples:/opt/examples
-      - ./volumes/controller/data:/opt/pinot/data
       - ./volumes/controller/pinot-controller.conf:/opt/pinot/conf/pinot-controller.conf
     depends_on:
       - pinot-zookeeper
