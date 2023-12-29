@@ -64,3 +64,8 @@ SELECT subject,avg(score) AS average_grade FROM transcript GROUP BY subject;
 
 ![Superset](../images/simple_streaming_superset.jpg)
 
+## Deep Store
+
+After 5 min, you can see the Segment flushed to out S3 deep store
+
+![Deep Store](../images/simple_streaming_s3_deep_store.jpg)
