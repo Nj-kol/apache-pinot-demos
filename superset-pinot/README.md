@@ -1,5 +1,7 @@
 # Superset
 
+## Setup
+
 ### Create Custom image
 
 To work with Pinot, Superset needs external connectos, and hence we need to create a custom image
@@ -87,6 +89,15 @@ superset fab create-admin \
 UI : http://localhost:30092/login
 u/p: [admin/admin]
 
+## Usage
+
+Note: Once the setup has been completed, you can re-use the same container
+
+```shell
+docker start custom-superset
+
+docker stop custom-superset
+```
 ### Pinot Superset Integration
 
 Once you login to Superset...

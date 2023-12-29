@@ -25,9 +25,9 @@
              "streamType": "kafka",
              "value.serializer": "org.apache.kafka.common.serialization.ByteArraySerializer",
              "stream.kafka.consumer.type": "LOWLEVEL",
-             "realtime.segment.flush.threshold.segment.rows": "50000",
              "stream.kafka.broker.list": "kafka:19092",
-             "realtime.segment.flush.threshold.time": "3600000",
+             "realtime.segment.flush.threshold.segment.rows": "20",
+             "realtime.segment.flush.threshold.time": "5m",
              "stream.kafka.consumer.factory.class.name": "org.apache.pinot.plugin.stream.kafka20.KafkaConsumerFactory",
              "stream.kafka.consumer.prop.auto.offset.reset": "smallest",
              "stream.kafka.topic.name": "transcript"

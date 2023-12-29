@@ -1,60 +1,34 @@
 ## Pinot with S3 Deep Storage
 
-Here we will be spiining up a Pinot Cluster with S3 as a Deep store
+Here we will be spinning up a Pinot Cluster with S3 as a Deep store
 
-### Setup
-
-```shell
-vim pinot/volumes/controller/pinot-controller.conf
-```
-
-Change the following to point to your S3 :
-
-```shell
-controller.data.dir=s3://pinot/controller-data
-pinot.controller.storage.factory.s3.endpoint=http://192.168.0.152:9000
-pinot.controller.storage.factory.s3.region=us-west-2
-pinot.controller.storage.factory.s3.accessKey=minio
-pinot.controller.storage.factory.s3.secretKey=minio123
-```
-
-```shell
-vim pinot/volumes/server/pinot-server.conf
-```
-
-Change the following to point to your S3 :
-
-```shell
-controller.data.dir=s3://pinot/controller-data
-pinot.controller.storage.factory.s3.endpoint=http://192.168.0.152:9000
-pinot.controller.storage.factory.s3.region=us-west-2
-pinot.controller.storage.factory.s3.accessKey=minio
-pinot.controller.storage.factory.s3.secretKey=minio123
-```
-
-### Spin Up Pinot 
+### Spin Up Components 
 
 ```bash
 ## Start
 docker-compose -f pinot-standalone.yml up -d
 
-docker-compose -f pinot-compose.yml up -d
-
 ## Stop
-docker-compose -f pinot-standalone.yml down
 
 docker-compose -f pinot-compose.yml down
 ```
 
-UI : http://localhost:9210/#/query
+This will bring up the following components :
 
-**Housekeeping**
+1. Minio ( S3 compatible file system )
+2. Zookeeper
+3. Kafka 
+4. Kafdrop ( UI for kafka )
+5. Pinot Components
+   - Pinot Controller
+   - Pinot Broker
+   - Pinot Server
 
-```bash
-docker logs pinot-controller
+## UI(s)
 
-docker exec -it pinot-controller bash
-```
+- Pinot UI   : http://localhost:9210/#/query
+- Minio (S3) : http://localhost:9001
+- Kafdrop    : http://localhost:9100
 
 ## References
 
