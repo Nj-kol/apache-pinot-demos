@@ -1,0 +1,50 @@
+{
+    "tableName":"wikipedia_clickstream",
+    "tableType":"REALTIME",
+    "segmentsConfig":{
+       "timeColumnName":"timestampInEpoch",
+       "timeType":"MILLISECONDS",
+       "schemaName":"wikipedia_clickstream",
+       "replicasPerPartition":"1"
+    },
+    "tenants":{
+       
+    },
+    "tableIndexConfig":{
+       "starTreeIndexConfigs":[
+          {
+             "dimensionsSplitOrder":[
+                "article_name",
+                "referrer"
+             ],
+             "skipStarNodeCreationForDimensions":[
+                
+             ],
+             "functionColumnPairs":[
+                "SUM__page_views"
+             ],
+             "maxLeafRecords":100
+          }
+       ],
+       "loadMode":"MMAP",
+       "streamConfigs":{
+          "streamType":"kafka",
+          "realtime.segment.flush.threshold.size":"0",
+          "realtime.segment.flush.threshold.time":"1h",
+          "realtime.segment.flush.desired.size":"50M",
+          "stream.kafka.consumer.type":"lowlevel",
+          "stream.kafka.hlc.zk.connect.string":"pinot-zookeeper:2181/kafka",
+          "stream.kafka.zk.broker.url":"pinot-zookeeper:2181/kafka",
+          "stream.kafka.broker.list":"kafka:19092",
+          "stream.kafka.topic.name":"wikipedia-clickstream",
+          "stream.kafka.decoder.class.name":"org.apache.pinot.plugin.stream.kafka.KafkaJSONMessageDecoder",
+          "stream.kafka.consumer.factory.class.name":"org.apache.pinot.plugin.stream.kafka20.KafkaConsumerFactory",
+          "stream.kafka.consumer.prop.auto.offset.reset":"smallest"
+       }
+    },
+    "metadata":{
+       "customConfigs":{
+          
+       }
+    }
+}

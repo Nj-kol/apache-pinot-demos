@@ -1,0 +1,25 @@
+{
+   "schemaName": "wikipedia_clickstream",
+   "dimensionFieldSpecs": [
+     {
+       "name": "referrer",
+       "dataType": "STRING"
+     },
+     {
+       "name": "article_name",
+       "dataType": "STRING"
+     }
+   ],
+   "metricFieldSpecs": [
+     {
+       "name": "page_views",
+       "dataType": "LONG"
+     }
+   ],
+   "dateTimeFieldSpecs": [{
+     "name": "timestampInEpoch",
+     "dataType": "LONG",
+     "format" : "1:MILLISECONDS:EPOCH",
+     "granularity": "1:MILLISECONDS"
+   }]
+}

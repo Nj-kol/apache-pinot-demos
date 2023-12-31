@@ -1,90 +1,9 @@
  
 # Clickstream analytics with Star Tree index
 
-## Download and extract data
-
-* You can download the dataset from : https://figshare.com/articles/dataset/Wikipedia_Clickstream/1305770
-
-* Then extract the data locally
-
-```bash
-gzip -d 2017_01_en_clickstream.tsv.gz
-```
-
-## Prepare data in spark
-
-* The dataset is large, so we will only take a sample of the data and also convert it into JSON so that
-  it can be fed to a Kafka topic
-
-```scala
-import org.apache.spark.sql.Encoders
-import org.apache.spark.sql.functions
-
-val fileLoc = "/Users/nilanjan1.sarkar/Downloads/data/2017_01_en_clickstream.tsv"
-
-case class Click(prev: String, curr: String, link: String, n: Long)
-
-val clickSchema = Encoders.product[Click].schema
-
-var clickDf = spark.read.format("csv").     // Use "csv" regardless of TSV or CSV.
-                option("header", "true").  // Does the file have a header line?
-                option("delimiter", "\t"). // Set delimiter to tab or comma.
-                schema(clickSchema).        // Schema that was built above.
-                load(fileLoc)
-
-clickDf.createOrReplaceTempView("clickstream")      
-
-// Do a random sampling on the data
-val sampledDf = spark.sql("""
-select prev as referrer, curr as article_name,n as page_views
-from clickstream
-where rand() <= 0.0001
-distribute by rand()
-sort by rand()
-limit 10000
-""")  
-
-val randomTimestamp = functions.udf((s: Int) => {
-  s + scala.util.Random.nextInt(2000)
-})
-
-val sampledWithTimeDf = sampledDf.withColumn("timestampInEpoch", randomTimestamp(lit(1516364153)))
-
-sampledWithTimeDf.show(false)
-```
-
-* The output looks like :
-
-```bash
-+---------------------------------------------------------+--------------------------------------+----------+----------------+
-|referrer                                                 |article_name                          |page_views|timestampInEpoch|
-+---------------------------------------------------------+--------------------------------------+----------+----------------+
-|2016_BDO_World_Darts_Championship                        |Lisa_Ashton                           |96        |1516365032      |
-|other-empty                                              |Baler_(film)                          |334       |1516366019      |
-|Brooklyn_Nets                                            |Yankee_Global_Enterprises             |14        |1516364402      |
-|other-empty                                              |Forrest_H._Duttlinger_Natural_Area    |38        |1516365742      |
-|Ninox                                                    |Sulu_hawk-owl                         |17        |1516365089      |
-```
-
-* Convert it into JSON
-
-```json
-sampledWithTimeDf.write.json("/Users/nilanjan1.sarkar/Downloads/data/json")
-```
-
-* Rename the JSON file generated to something more meaningful
-
-```bash
-mv part-00000-3ab21414-8ffe-416d-a78e-edab2ea61b9e-c000.json clickstream.json
-```
-
-# Pinot
-
 ## Create a schema
 
-Schema is used to define the columns and data types of the Pinot table :
-
-`${HOME}/volumes/pinot/samples/wikipedia/wikipedia-schema.json`
+Schema is used to define the columns and data types of the Pinot table : `pinot/volumes/examples/streaming/wikipedia-clickstream/wikipedia-schema.json`
 
 ```json
 {
@@ -107,7 +26,7 @@ Schema is used to define the columns and data types of the Pinot table :
   ],
   "dateTimeFieldSpecs": [{
     "name": "timestampInEpoch",
-    "dataType": "LONG",
+    "dataType": "TIMESTAMP",
     "format" : "1:MILLISECONDS:EPOCH",
     "granularity": "1:MILLISECONDS"
   }]
@@ -116,58 +35,62 @@ Schema is used to define the columns and data types of the Pinot table :
 
 ## Creating a table config
 
-* Here's the realtime table config for the `wikipedia-clickstream` table. 
-
-`${HOME}/volumes/pinot/samples/wikipedia/wikipedia-clickstream-table-realtime.json`
+Here's the realtime table config for the `wikipedia-clickstream` table : `pinot/volumes/examples/streaming/wikipedia-clickstream/wikipedia-clickstream-table-realtime.json`
 
 ```json
 {
-   "tableName":"wikipedia_clickstream",
-   "tableType":"REALTIME",
-   "segmentsConfig":{
-      "timeColumnName":"timestampInEpoch",
-      "timeType":"MILLISECONDS",
-      "schemaName":"wikipedia_clickstream",
-      "replicasPerPartition":"1"
-   },
-   "tenants":{
-      
-   },
-   "tableIndexConfig":{
-      "starTreeIndexConfigs":[
-         {
-            "dimensionsSplitOrder":[
-               "article_name",           	
-               "referrer"
-            ],
-            "skipStarNodeCreationForDimensions":[
-               
-            ],
-            "functionColumnPairs":[
-               "SUM__page_views"
-            ],
-            "maxLeafRecords":1
-         }
-      ],
-      "loadMode":"MMAP",
-      "streamConfigs":{
-         "streamType":"kafka",
-         "realtime.segment.flush.threshold.size":"0",
-         "realtime.segment.flush.threshold.time":"1h",
-         "realtime.segment.flush.desired.size":"50M",
-         "stream.kafka.consumer.type":"lowlevel",
-         "stream.kafka.broker.list":"LM0001680:39092",
-         "stream.kafka.topic.name":"wikipedia-clickstream",
-         "stream.kafka.decoder.class.name":"org.apache.pinot.plugin.stream.kafka.KafkaJSONMessageDecoder",
-         "stream.kafka.consumer.factory.class.name":"org.apache.pinot.plugin.stream.kafka20.KafkaConsumerFactory",
-         "stream.kafka.consumer.prop.auto.offset.reset":"smallest"
-      }
-   },
-   "metadata":{
-      "customConfigs":{
-         
-      }
-   }
+    "tableName":"wikipedia_clickstream",
+    "tableType":"REALTIME",
+    "segmentsConfig":{
+       "timeColumnName":"timestampInEpoch",
+       "timeType":"MILLISECONDS",
+       "schemaName":"wikipedia_clickstream",
+       "replicasPerPartition":"1"
+    },
+    "tenants":{
+       
+    },
+    "tableIndexConfig":{
+       "starTreeIndexConfigs":[
+          {
+             "dimensionsSplitOrder":[
+                "article_name",           	
+                "referrer"
+             ],
+             "skipStarNodeCreationForDimensions":[
+                
+             ],
+             "aggregationConfigs": [
+                {
+                  "columnName": "page_views",
+                  "aggregationFunction": "SUM",
+                  "compressionCodec": "LZ4"
+                }
+              ],
+             "maxLeafRecords": 100
+          }
+       ],
+       "loadMode":"MMAP",
+       "streamConfigs":{
+          "streamType":"kafka",
+          "realtime.segment.flush.threshold.size":"0",
+          "realtime.segment.flush.threshold.time":"1h",
+          "realtime.segment.flush.desired.size":"50M",
+          "stream.kafka.consumer.type":"lowlevel",
+          "stream.kafka.hlc.zk.connect.string": "pinot-zookeeper:2181/kafka",
+          "stream.kafka.zk.broker.url": "pinot-zookeeper:2181/kafka",
+          "stream.kafka.broker.list": "kafka:19092",
+          "stream.kafka.topic.name":"wikipedia-clickstream",
+          "stream.kafka.decoder.class.name":"org.apache.pinot.plugin.stream.kafka.KafkaJSONMessageDecoder",
+          "stream.kafka.consumer.factory.class.name":"org.apache.pinot.plugin.stream.kafka20.KafkaConsumerFactory",
+          "stream.kafka.consumer.prop.auto.offset.reset":"smallest"
+       }
+    },
+    "metadata":{
+       "customConfigs":{
+          
+       }
+    }
 }
 ```
 
@@ -178,67 +101,65 @@ Schema is used to define the columns and data types of the Pinot table :
 * The command needs to be executed on the controlled node
 
 ```bash
-docker container exec -it pinot-controller bash
-
+docker container exec -it pinot-controller \
 /opt/pinot/bin/pinot-admin.sh AddTable \
--schemaFile /opt/pinot/samples/wikipedia/wikipedia-schema.json \
--tableConfigFile /opt/pinot/samples/wikipedia/wikipedia-clickstream-table-realtime.json \
--controllerHost pinot-controller \
--controllerPort 9000 \
+-schemaFile /opt/examples/streaming/wikipedia-clickstream/wikipedia-clickstream-schema.json \
+-tableConfigFile /opt/examples/streaming/wikipedia-clickstream/wikipedia-clickstream-table-realtime.json \
 -exec
+```
 
+```shell
 # Drop table
+docker container exec -it pinot-controller \
 /opt/pinot/bin/pinot-admin.sh ChangeTableState \
 -tableName wikipedia_clickstream \
 -state drop 
 ```
 
-http://localhost:9000
+## Insert data into Kafka
 
-# Kafka
-
-* Create a new topic to post the clickstream data
+**Create a Kafka Topic**
 
 ```bash
-docker container exec -it kafka-standalone bash
-
-# Create a Kafka Topic
-
-kafka-topics.sh \
+docker container exec -it kafka \
+kafka-topics \
 --create \
---zookeeper zookeeper-standalone:2181 \
---partitions 3 \
+--bootstrap-server localhost:9092 \
+--partitions 1 \
 --replication-factor 1 \
 --topic wikipedia-clickstream
 ```
 
-* Push data to kafka
+**Loading sample data into stream**
 
-```bash
-kafka-console-producer.sh \
---broker-list localhost:9092 \
---topic wikipedia-clickstream < /opt/samples/clickstream.json
-```
+Push sample JSON into Kafka topic, using the `producer.py` script from `clients` folder in the repo
 
-* See data in Kafka
-
-```bash
-kafka-console-consumer.sh \
---bootstrap-server localhost:9092 \
+```shell
+python clients/producer.py \
+--broker-list "localhost:9092" \
 --topic wikipedia-clickstream \
---from-beginning
+--file-path "ingestion-demos/streaming/clickstream-analytics/data/clickstream.json"
 ```
+
+* See data in Kafka : http://localhost:9100/
 
 * Sample Queries
 
 ```sql
-SELECT article_name, SUM(page_views) as total_views FROM wikipedia_clickstream 
-GROUP BY article_name,referrer
-
 SELECT SUM(page_views) FROM wikipedia_clickstream 
 WHERE article_name ='Akkadian_Empire'
-GROUP BY referrer
+GROUP BY referrer;
 ```
+
+### Demo
+
+## Sqllab View
+
+![Superset](../images/Superset_Sqllab.png)
+
+## Sample Dashboard
+
+![Superset Pinot Dashboard](../images/wikipedia-clickstream-dashboard.jpg)
 
 ## References
 
@@ -248,13 +169,3 @@ https://meta.wikimedia.org/wiki/Research:Wikipedia_clickstream
  
 https://figshare.com/articles/dataset/Wikipedia_Clickstream/1305770
 
-
-### Demo
-
-## Sqllab View
-
-![Superset sqllab](Superset_Sqllab.png)
-
-## Sample Dashboard
-
-![Superset Pinot Dashboard](wikipedia-clickstream-dashboard.jpg)

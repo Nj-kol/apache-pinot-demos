@@ -33,6 +33,8 @@ services:
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+    depends_on:
+      - createbuckets
 
   kafka:
     image: confluentinc/cp-kafka:7.2.1
@@ -115,3 +117,4 @@ services:
       - ./volumes/server/pinot-server.conf:/opt/pinot/conf/pinot-server.conf
     depends_on:
       - pinot-broker
+      - createbuckets
