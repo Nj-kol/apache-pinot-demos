@@ -8,7 +8,11 @@
      {
        "name": "article_name",
        "dataType": "STRING"
-     }
+     },
+     {
+      "name": "link_type",
+      "dataType": "STRING"
+    }
    ],
    "metricFieldSpecs": [
      {

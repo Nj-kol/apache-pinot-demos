@@ -108,12 +108,20 @@ docker container exec -it pinot-controller \
 -exec
 ```
 
+Clean up :
+
 ```shell
 # Drop table
 docker container exec -it pinot-controller \
 /opt/pinot/bin/pinot-admin.sh ChangeTableState \
 -tableName wikipedia_clickstream \
 -state drop 
+
+# Drop schema
+docker container exec -it pinot-controller \
+/opt/pinot/bin/pinot-admin.sh DeleteSchema \
+-schemaName=wikipedia_clickstream \
+-exec
 ```
 
 ## Insert data into Kafka
@@ -143,13 +151,77 @@ python clients/producer.py \
 
 * See data in Kafka : http://localhost:9100/
 
-* Sample Queries
+### Sample Queries
 
 ```sql
-SELECT SUM(page_views) FROM wikipedia_clickstream 
-WHERE article_name ='Akkadian_Empire'
+SELECT referrer,SUM(page_views) 
+FROM wikipedia_clickstream 
+WHERE article_name ='Aristotle'
 GROUP BY referrer;
+
+SELECT distinct(link_type)
+FROM wikipedia_clickstream
+WHERE article_name ='Aristotle';
+
+-- Sketch
+-- HLL Demo
+SELECT count(distinct referrer) AS num_referrers
+FROM wikipedia_clickstream 
+WHERE article_name ='Aristotle';
+
+SELECT distinctcounthll(referrer) AS num_referrers
+FROM wikipedia_clickstream
+WHERE article_name ='Aristotle';
+
+-- Theta Sketch demo
+
+SELECT distinct(referrer)
+FROM wikipedia_clickstream
+WHERE article_name ='Aristotle';
+
+
+SELECT *
+FROM wikipedia_clickstream
+WHERE article_name ='Aristotle'
+AND referrer='Lucid_dream';
+
+
+-- 998753
+SELECT count(referrer) AS num_referrers
+FROM wikipedia_clickstream
+WHERE link_type= 'link';
+
+-- 34195
+SELECT count(referrer) AS num_referrers
+FROM wikipedia_clickstream
+WHERE link_type= 'other';
+
+-- How many referrers came from link type of `link` and not `other`
+-- 433760
+SELECT distinctCountThetaSketch(
+referrer,
+'nominalEntries=262144',
+'link_type= ''link'' ',
+'link_type= ''other'' ',
+'SET_DIFF($1,$2)'
+) 
+FROM wikipedia_clickstream
+WHERE link_type IN ('link','other');
+
+
+-- For articles on Aristottle, how many referrers came from link type of `link` and not `other`
+SELECT distinctCountThetaSketch(
+referrer,
+'nominalEntries=262144',
+'link_type= ''link'' ',
+'link_type= ''other'' ',
+'SET_DIFF($1,$2)'
+) 
+FROM wikipedia_clickstream
+WHERE article_name ='Aristotle'
+AND link_type IN ('link','other');
 ```
+
 
 ### Demo
 
