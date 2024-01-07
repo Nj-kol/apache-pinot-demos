@@ -2,6 +2,7 @@
     "tableName": "transcript",
     "tableType": "OFFLINE",
     "segmentsConfig": {
+      "schemaName" : "transcript",
       "replication": 1,
       "timeColumnName": "timestampInEpoch",
       "timeType": "MILLISECONDS",

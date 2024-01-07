@@ -14,19 +14,16 @@ docker-compose -f pinot-standalone.yml down
 
 This will bring up the following components :
 
-1. Minio ( S3 compatible file system )
-2. Zookeeper
-3. Kafka 
-4. Kafdrop ( UI for kafka )
-5. Pinot Components
+1. Zookeeper
+2. Kafka 
+3. Kafdrop ( UI for kafka )
+4. Pinot Components
    - Pinot Controller
    - Pinot Broker
    - Pinot Server
 
 ## UI(s)
-
 - Pinot UI   : http://localhost:9210/#/query
-- Minio (S3) : http://localhost:9001
 - Kafdrop    : http://localhost:9100
 
 ## References

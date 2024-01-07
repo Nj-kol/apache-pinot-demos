@@ -1,19 +1,7 @@
-## Spark Pipeline
+## Spark Filter Pipeline
 
-### Redis CLI
-
-```shell
-docker start redis-stack
-
-docker exec -it redis-stack redis-cli
-
-BF.RESERVE whitelisted_linktypes 0.001 100
-
-BF.MADD whitelisted_linktypes link external
-
-BF.EXISTS whitelisted_linktypes link
-BF.EXISTS whitelisted_linktypes external
-```
+The pipeline will read data from kafka, do a lookup in Redis to filter out undesired inputs and write
+the fileterd data to another kafka topic
 
 ### Launch Spark shell
 
@@ -33,14 +21,14 @@ import org.apache.spark.sql.functions._
 import spark.implicits._
 import redis.clients.jedis.Jedis
 
+val checkPointLocation = "/home/njkol/tmp/spark-redis"
+
 val redisHost = "localhost"
 val redisPort = 6379
 val bloomFilterName = "whitelisted_linktypes"
 val kafkaServer = "localhost:9092"
 val kafkaSourceTopic = "clickstream-raw"
 val kafkaDestinationTopic = "clickstream-transformed"
-
-val checkPointLocation = "/home/njkol/tmp/spark-redis"
 
 @transient lazy val jedis = new Jedis(redisHost, redisPort)
 
