@@ -69,42 +69,12 @@ var clickDf = spark.read.format("csv")
 
 clickDf.createOrReplaceTempView("clickstream")      
 
-val sampledDf = spark.sql("""
-select referrer, article_name, page_views, link_type
-from clickstream
-where link_type IS NOT NULL
-""")  
-
-
- spark.sql("""
-select distinct(referrer)
-from clickstream
-where referrer like 'o%'
-""").show
-
-+--------------+
-|      referrer|
-+--------------+
-|other-internal|
-|  other-search|
-|   other-empty|
-|   other-other|
-|other-external|
-+--------------+
-
-other-other,other-empty
-
-
- spark.sql("""
-select count(referrer)
-from clickstream
-where article_name='Aristotle'
-and link_type='other'
-""").show(1000)
-
 val randomTimestamp = functions.udf((s: Long) => s + scala.util.Random.nextInt(20000))
 
 val tsDF = clickDf.withColumn("timestampInEpoch", randomTimestamp(lit(1639137263000L)))
+
+// Convert to JSON
+tsDF.repartition(64).write.json("/home/njkol/Sample_Data/wikipedia_clickstream/json2")
 
 tsDF.show(false)
 ```
@@ -138,19 +108,7 @@ tsDF.show(false)
 +---------------------------------------------+------------+---------+----------+----------------+
 ```
 
-Convert it into JSON :
-
-```scala
-tsDf.coalesce(16).write.json("/home/njkol/Sample_Data/wikipedia_clickstream/json2")
-```
-
-Rename the JSON file generated to something more meaningful
-
-```bash
-mv part-00000-11c0facc-8bae-411d-b366-aaf08fc43112-c000.json clickstream.json
-```
-
-Sample JSON data :
+Sample JSON data on disk :
 
 ```json
 {"referrer":"Quartz","article_name":"Shocked_quartz","page_views":277,"timestampInEpoch":1639137264714}
