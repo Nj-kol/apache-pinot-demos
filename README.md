@@ -5,7 +5,7 @@
 This will bring up S3 and Redis :
 
 ```shell
-W
+docker-compose -f ancillary/ancillary-components.yml up -d
 ```
 
 Login to Minio and create a bucket called `pinot`
@@ -34,6 +34,7 @@ BF.MADD whitelisted_linktypes link external
 ## Check for existence
 BF.EXISTS whitelisted_linktypes link
 BF.EXISTS whitelisted_linktypes external
+BF.EXISTS whitelisted_linktypes others
 
 quit
 ```
@@ -94,13 +95,19 @@ To setup and run SuperSet and connect to pinot, some initial setup has to be don
 - UI : http://localhost:30092/login
 - u/p: [admin/admin]
 
-## Wikipedia Clickstream Analytics Demo
+## Demo: Wikipedia Clickstream Analytics
 
-**Prepare sample data set**
+Once the superset container has been described in : `superset-pinot/README.md`, start the container before for warmup
+
+```shell
+docker start custom-superset
+```
+
+**Step 1 : Prepare sample data set**
 
 Follow steps in : `wikipedia-clickstream-analysis/spark/Clickstream_Data_Preparation.md`
 
-**Create Kafka Topic(s)**
+**Step 2 : Create Kafka Topic(s)**
 
 ```bash
 docker container exec -it kafka \
@@ -120,7 +127,7 @@ kafka-topics \
 --topic clickstream-transformed
 ```
 
-**Create REALTIME table in Pinot**
+**Step 3 : Create REALTIME table in Pinot**
 
 ```shell
 docker container exec -it pinot-controller \
@@ -130,9 +137,11 @@ docker container exec -it pinot-controller \
 -exec
 ```
 
-**Start Spark pre-processing job**
+**Step 4 : Start Spark pre-processing job**
 
 The pipeline will read data from kafka, do a lookup in Redis to filter out undesired inputs and write the fileterd data to another kafka topic
+
+Start a Spark shell :
 
 ```shell
 spark-shell \
@@ -142,7 +151,7 @@ spark-shell \
 --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0,redis.clients:jedis:5.0.2
 ```
 
-## Code
+Paste the code in Spark shell :
 
 ```scala
 import org.apache.spark.sql.types._
@@ -196,40 +205,110 @@ val query = finalDf.writeStream
 query.awaitTermination()
 ```
 
-**Send data to Kakfa**
+**Step 5 : Send data to Kakfa**
+
+From another shell, start sending data to kakfa :
 
 ```shell
-SAMPLE_DATA_FILE="/home/njkol/Sample_Data/wikipedia_clickstream/json2/part-00000-1e492adb-bb07-4845-a518-999f5665e0a6-c000.json"
-
 ## Copy sample data file to kafka docker
-docker cp $SAMPLE_DATA_FILE kafka:/home/appuser
+docker cp /home/njkol/Sample_Data/wikipedia_clickstream/json3/part-00001-0a72d7ce-c897-4b8d-85a4-d33a61109df6-c000.json kafka:/home/appuser
 
 ## Ingest some records
 docker container exec -it kafka bash
 
 kafka-console-producer \
 --broker-list localhost:9092 \
---topic clickstream-raw < /home/appuser/part-00000-1e492adb-bb07-4845-a518-999f5665e0a6-c000.json
-```
-
-**Loading sample data into stream**
-
-Push sample JSON into Kafka topic, using the `producer.py` script from `clients` folder in the repo
-
-```shell
-
-
-python clients/producer.py \
---broker-list "localhost:9092" \
---topic wikipedia-clickstream \
---file-path "ingestion-demos/streaming/clickstream-analytics/data/clickstream.json"
+--topic clickstream-raw < /home/appuser/part-00000-0a72d7ce-c897-4b8d-85a4-d33a61109df6-c000.json
 ```
 
 * See data in Kafka : http://localhost:9100/
 
+### Sample Pinot queries
+
+```sql
+-- Regular queries
+select distinct(link_type) 
+from wikipedia_clickstream;
+
+-- Queries utilising Star-tree index
+SELECT article_name,SUM(page_views) 
+FROM wikipedia_clickstream 
+WHERE article_name = 'Aristotle' 
+GROUP BY article_name;
+
+SELECT article_name,referrer,SUM(page_views) 
+FROM wikipedia_clickstream 
+WHERE article_name = 'Aristotle' 
+GROUP BY article_name,referrer;
+
+SELECT article_name,referrer,SUM(page_views) 
+FROM wikipedia_clickstream 
+WHERE article_name = 'Aristotle'
+AND referrer = 'Ruhollah_Khomeini'
+GROUP BY article_name,referrer;
+
+-- Sketch queries
+
+--HyperLogLog (HLL Demo)
+
+SELECT 
+count(distinct(referrer)) AS num_referrer
+FROM wikipedia_clickstream;
+
+SELECT 
+distinctcounthll(referrer) AS num_referrer
+FROM wikipedia_clickstream;
+
+-- 178631
+SELECT 
+distinctcounthll(article_name, 'nominalEntries=8192')  AS num_distinct_article_name
+FROM wikipedia_clickstream;
+
+-- Theta Sketch Demo
+
+-- Count distinct
+SELECT 
+distinctCountThetaSketch(referrer) AS num_referrer
+FROM wikipedia_clickstream;
+
+SELECT
+distinctCountThetaSketch(referrer, 'nominalEntries=8192') AS num_referrer
+FROM wikipedia_clickstream;
+
+-- Set operations : Difference in count of referrers of articles on Aristotle based on link type
+SELECT 
+count(distinct(referrer)) AS num_internal_referrers
+FROM wikipedia_clickstream 
+WHERE
+article_name = 'Aristotle' AND link_type='link';
+
+SELECT 
+count(distinct(referrer)) AS num_external_referrers
+FROM wikipedia_clickstream 
+WHERE article_name = 'Aristotle' AND link_type='external';
+
+SELECT distinctCountThetaSketch(
+  referrer, 
+  'nominalEntries=4096', 
+  'link_type = ''link'' AND article_name = ''Aristotle'' ',
+  'link_type = ''external'' AND article_name = ''Aristotle''',
+  'SET_DIFF($1, $2)'
+) AS value
+FROM wikipedia_clickstream 
+WHERE link_type IN ('link','external');
+```
+
 ### Final Superset Dashboard
 
 ![Superset Pinot Dashboard](ingestion-demos/streaming/images/wikipedia-clickstream-dashboard.jpg)
+
+## Teardown
+
+```shell
+docker-compose -f pinot/pinot-standalone.yml down
+
+docker-compose -f ancillary/ancillary-components.yml down
+```
 
 ## References
 

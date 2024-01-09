@@ -6,10 +6,10 @@ Here we will be spinning up a Pinot Cluster with S3 as a Deep store
 
 ```bash
 ## Start all components
-docker-compose -f pinot-standalone.yml up -d
+docker-compose -f pinot/pinot-standalone.yml up -d
 
 ## Stop all components
-docker-compose -f pinot-standalone.yml down
+docker-compose -f pinot/pinot-standalone.yml down
 ```
 
 This will bring up the following components :

@@ -74,7 +74,7 @@ val randomTimestamp = functions.udf((s: Long) => s + scala.util.Random.nextInt(2
 val tsDF = clickDf.withColumn("timestampInEpoch", randomTimestamp(lit(1639137263000L)))
 
 // Convert to JSON
-tsDF.repartition(64).write.json("/home/njkol/Sample_Data/wikipedia_clickstream/json2")
+tsDF.repartition(128).write.json("/home/njkol/Sample_Data/wikipedia_clickstream/json3")
 
 tsDF.show(false)
 ```
