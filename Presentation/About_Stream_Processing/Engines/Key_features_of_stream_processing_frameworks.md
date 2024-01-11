@@ -7,7 +7,7 @@ There there three categories of processing guarantees each with their own set of
 
 #### At-most-once
 - At-most-once is the simplest delivery guarantee a system can offer; no special logic is required anywhere.
-- In essence, if a message gets dropped, a stream processor crashes, or the machine that a stream processor is running on fails, the message is lost. This is essentially a ***fire-and-forget* model
+- In essence, if a message gets dropped, a stream processor crashes, or the machine that a stream processor is running on fails, the message is lost. This is essentially a ***fire-and-forget*** model
 #### At-least-once
 - At-least-once increases the complexity because the streaming system must keep track of every message that was sent to the stream processor and an acknowledgment that it was received. 
 - If the streaming manager determines that the message wasn’t processed (perhaps it was lost or the stream processor didn’t respond within a given time boundary), then it will be re-sent. 
