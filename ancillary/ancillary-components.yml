@@ -1,0 +1,22 @@
+version: '3.7'
+
+services:
+  minio-pinot :
+    image: quay.io/minio/minio
+    hostname: minio-pinot
+    container_name: minio-pinot
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: "minio"
+      MINIO_ROOT_PASSWORD: "minio123"
+      
+  redis-stack :
+    image: redis/redis-stack:latest
+    hostname: redis-stack
+    container_name: redis-stack
+    ports:
+      - "6379:6379"
+      - "8001:8001"

@@ -1,158 +1,317 @@
-# Apache Pinot Demo
+# Apache Pinot with SuperSet : Wikipedia Clickstream analytics with Star Tree index
 
-* Create an external network to bind all the components together
+## Bring up Ancillary components
 
-```bash
-docker network create sandbox
+This will bring up S3 and Redis :
+
+```shell
+docker-compose -f ancillary/ancillary-components.yml up -d
 ```
 
-## Spin Up Pinot 
+Login to Minio and create a bucket called `pinot`
 
-```bash
-# Create local directories for mounting volumes
-mkdir -p ${HOME}/volumes/pinot/zookeeper/data
-mkdir -p ${HOME}/volumes/pinot/zookeeper/datalog
-mkdir -p ${HOME}/volumes/pinot/controller
-mkdir -p ${HOME}/volumes/pinot/server
+- URL : http://localhost:9001/browser/
+- u/p : minio/minio123
 
-mkdir -p ${HOME}/volumes/pinot/samples
 
-## Start
-docker-compose -f pinot-standalone.yml up -d
+**Setup Redis CLI**
 
-## Stop
-docker-compose -f pinot-standalone.yml down
+Login to Redis Shell
+
+```shell
+docker exec -it redis-stack redis-cli
 ```
 
-**Housekeeping**
+Create a Bloom filter and add elements :
 
-```bash
-docker logs pinot-controller
+```shell
+## Create a new bloom filter
+BF.RESERVE whitelisted_linktypes 0.001 100
 
-docker exec -it pinot-controller bash
+## Add allowed link types
+BF.MADD whitelisted_linktypes link external
 
-docker logs pinot-broker
+## Check for existence
+BF.EXISTS whitelisted_linktypes link
+BF.EXISTS whitelisted_linktypes external
+BF.EXISTS whitelisted_linktypes others
 
-docker exec -it pinot-broker bash
-
-docker logs pinot-server
-
-docker exec -it pinot-server bash
+quit
 ```
 
-http://localhost:9000/#/query
+### Bring up Pinot
 
-# Kafka on Docker
+**Setup config**
 
-```bash
-# Set up Zookeeper
-mkdir -p ${HOME}/volumes/zookeeper
+Change IP in the following files :
 
-docker pull zookeeper:3.6.1
+In `pinot/volumes/controller/pinot-controller.conf`, change :
 
-ZK_HOME=${HOME}/volumes/zookeeper
-
-docker container run \
--p 30181:2181 \
---network=sandbox \
---name zookeeper-standalone \
---restart always \
--e ZOO_LOG4J_PROP="INFO,ROLLINGFILE" \
--v ${ZK_HOME}/datalog:/datalog \
--v ${ZK_HOME}/data:/data \
--v ${ZK_HOME}/logs:/logs \
--d zookeeper:3.6.1
-
-## Housekeeping
-
-docker container logs zookeeper-standalone
-
-docker container start zookeeper-standalone
-
-docker container stop zookeeper-standalone
-
-docker container rm zookeeper-standalone
-
-docker container exec -it zookeeper-standalone bash
-
-bin/zkCli.sh
-
-## Setup Kafka
-
-mkdir -p ${HOME}/volumes/kafka/data
-mkdir -p ${HOME}/volumes/kafka/samples
-
-docker pull wurstmeister/kafka
-
-docker container run -d \
--p 39092:9092 \
---name kafka-standalone \
---network sandbox \
--e KAFKA_ADVERTISED_HOST_NAME=LM0001680 \
--e KAFKA_ADVERTISED_PORT=39092 \
--e KAFKA_BROKER_ID=1 \
--e KAFKA_ZOOKEEPER_CONNECT=zookeeper-standalone:2181 \
--e ZK=zk \
--v ${HOME}/volumes/kafka/data:/kafka \
--v ${HOME}/volumes/kafka/samples:/opt/samples \
--t wurstmeister/kafka
-
-## Housekeeping
-
-docker container start kafka-standalone
-
-docker container stop kafka-standalone
-
-docker container rm kafka-standalone
-
-docker container logs kafka-standalone -f 
-
-docker container exec -it kafka-standalone bash
+```
+pinot.controller.storage.factory.s3.endpoint=http://<YOUR_MACHINE_IP>:9000
 ```
 
-# Case Study
+In `pinot/volumes/server/pinot-server.conf` , change :
 
-* Once an offline segment is pushed to cover a recent time period :
-  - the brokers automatically switch to using the offline table for segments for that time period
-  - and use realtime table only for data not available in offline table
+```
+pinot.server.storage.factory.s3.endpoint=http://<YOUR_MACHINE_IP>:9000
+```
 
-## Before batch test
+Then, bring up the stack :
 
-200,Lucy,Smith,Female,Maths,3.8,1570863600000 ( offline data )
+```shell
+docker-compose -f pinot/pinot-standalone.yml up -d
+```
 
-1570863600000 - Saturday, 12 October 2019 07:00:00
-1570863510000 - Saturday, 12 October 2019 06:58:30
+This will bring up  :
 
-**Add a record with past timestamp in kafka**
+1. Zookeeper
+2. Kafka 
+3. Kafdrop ( UI for kafka )
+4. Pinot Components
+   - Pinot Controller
+   - Pinot Broker
+   - Pinot Server
 
-{"studentID":200,"firstName":"Lucy","lastName":"Smith","gender":"Female","subject":"Maths","score":3.6,"timestampInEpoch":1570863510000}
+### Bring up Superset
 
-select * from transcript where studentID=200
+To setup and run SuperSet and connect to pinot, some initial setup has to be done. Please follow the instructions under `superset-pinot/README.md`
 
-You'll notice that only the record in offline table is being shown ( i.e. for 1570863600000 )
 
-## After batch test
+### All UIs
 
-200,Lucy,Smith,Female,English,3.5,1571036400000
+**Minio S3**
+- URL : http://localhost:9001/browser/
+- u/p : minio/minio123
 
-1571036400000 - Monday, 14 October 2019 07:00:00
-1612151387000 - Monday, 1 February 2021 03:49:47
+**Redis**
+- URL : http://localhost:8001/redis-stack/browser
 
-**Add a record with latest timestamp in kafka**
+**Pinot & Kafdrop**
+- Pinot UI   : http://localhost:9210/#/query
+- Kafdrop    : http://localhost:9100
 
-{"studentID":200,"firstName":"Lucy","lastName":"Smith","gender":"Female","subject":"English","score":4.2,"timestampInEpoch":1612151387000}
+**Superset**
+- UI : http://localhost:30092/login
+- u/p: [admin/admin]
 
-select * from transcript where studentID=200
+## Demo: Wikipedia Clickstream Analytics
 
-You'll notice that a new record is being shown ( i.e. for 1612151387000 )
+Once the superset container has been described in : `superset-pinot/README.md`, start the container before for warmup
 
-# Notes
+```shell
+docker start custom-superset
+```
 
-* The tenants section in both the OFFLINE and realtime tables must be same, otherwise HYBRID table
-  would not be formed
+**Step 1 : Prepare sample data set**
 
-References
-==========
+Follow steps in : `wikipedia-clickstream-analysis/spark/Clickstream_Data_Preparation.md`
+
+**Step 2 : Create Kafka Topic(s)**
+
+```bash
+docker container exec -it kafka \
+kafka-topics \
+--create \
+--bootstrap-server localhost:9092 \
+--partitions 1 \
+--replication-factor 1 \
+--topic clickstream-raw
+
+docker container exec -it kafka \
+kafka-topics \
+--create \
+--bootstrap-server localhost:9092 \
+--partitions 1 \
+--replication-factor 1 \
+--topic clickstream-transformed
+```
+
+**Step 3 : Create REALTIME table in Pinot**
+
+```shell
+docker container exec -it pinot-controller \
+/opt/pinot/bin/pinot-admin.sh AddTable \
+-schemaFile /opt/examples/streaming/wikipedia-clickstream/wikipedia-clickstream-schema.json \
+-tableConfigFile /opt/examples/streaming/wikipedia-clickstream/wikipedia-clickstream-table-realtime.json \
+-exec
+```
+
+**Step 4 : Start Spark pre-processing job**
+
+The pipeline will read data from kafka, do a lookup in Redis to filter out undesired inputs and write the fileterd data to another kafka topic
+
+Start a Spark shell :
+
+```shell
+spark-shell \
+--driver-memory 2G \
+--executor-memory 4G \
+--executor-cores 8 \
+--packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0,redis.clients:jedis:5.0.2
+```
+
+Paste the code in Spark shell :
+
+```scala
+import org.apache.spark.sql.types._
+import org.apache.spark.sql.functions._
+import spark.implicits._
+import redis.clients.jedis.Jedis
+
+val checkPointLocation = "/home/njkol/tmp/spark-redis-1"
+
+val redisHost = "localhost"
+val redisPort = 6379
+val bloomFilterName = "whitelisted_linktypes"
+val kafkaServer = "localhost:9092"
+val kafkaSourceTopic = "clickstream-raw"
+val kafkaDestinationTopic = "clickstream-transformed"
+
+@transient lazy val jedis = new Jedis(redisHost, redisPort)
+
+def bloomFilterLookup(json: Map[String,String]): Long = {
+ val script = "return redis.call('BF.EXISTS', KEYS[1], ARGV[1])"
+ jedis.eval(script, 1, bloomFilterName, json("link_type")).asInstanceOf[Long]
+}
+
+val bloomFilterLookupFunction = udf[Long,Map[String,String]](bloomFilterLookup)
+
+val inputStream = spark.readStream
+  .format("kafka")
+  .option("kafka.bootstrap.servers", kafkaServer)
+  .option("subscribe", kafkaSourceTopic)
+  .option("startingOffsets", "latest")
+  .load()
+
+// Filter data stream by reading External context
+val finalDf = inputStream
+.selectExpr("CAST(key AS STRING)", "CAST(value AS STRING)")
+.withColumn("deser",from_json(col("value"),MapType(StringType,StringType)))
+.withColumn("computed",bloomFilterLookupFunction(col("deser")))
+.filter(col("computed") > 0 )
+.drop("deser")
+.drop("computed")
+
+// Write filtered data to Kafka for further downstream processing
+val query = finalDf.writeStream
+.format("kafka")
+.option("kafka.bootstrap.servers", kafkaServer)
+.option("topic", kafkaDestinationTopic)
+.option("failOnDataLoss", "false")
+.option("checkpointLocation", checkPointLocation) 
+.start()
+    
+query.awaitTermination()
+```
+
+**Step 5 : Send data to Kakfa**
+
+From another shell, start sending data to kakfa :
+
+```shell
+## Copy sample data file to kafka docker
+docker cp /home/njkol/Sample_Data/wikipedia_clickstream/json3/part-00001-0a72d7ce-c897-4b8d-85a4-d33a61109df6-c000.json kafka:/home/appuser
+
+## Ingest some records
+docker container exec -it kafka bash
+
+kafka-console-producer \
+--broker-list localhost:9092 \
+--topic clickstream-raw < /home/appuser/part-00000-0a72d7ce-c897-4b8d-85a4-d33a61109df6-c000.json
+```
+
+* See data in Kafka : http://localhost:9100/
+
+### Sample Pinot queries
+
+```sql
+-- Regular queries
+select distinct(link_type) 
+from wikipedia_clickstream;
+
+-- Queries utilising Star-tree index
+SELECT article_name,SUM(page_views) 
+FROM wikipedia_clickstream 
+WHERE article_name = 'Aristotle' 
+GROUP BY article_name;
+
+SELECT article_name,referrer,SUM(page_views) 
+FROM wikipedia_clickstream 
+WHERE article_name = 'Aristotle' 
+GROUP BY article_name,referrer;
+
+SELECT article_name,referrer,SUM(page_views) 
+FROM wikipedia_clickstream 
+WHERE article_name = 'Aristotle'
+AND referrer = 'Ruhollah_Khomeini'
+GROUP BY article_name,referrer;
+
+-- Sketch queries
+
+--HyperLogLog (HLL Demo)
+
+SELECT 
+count(distinct(referrer)) AS num_referrer
+FROM wikipedia_clickstream;
+
+SELECT 
+distinctcounthll(referrer) AS num_referrer
+FROM wikipedia_clickstream;
+
+-- 178631
+SELECT 
+distinctcounthll(article_name, 'nominalEntries=8192')  AS num_distinct_article_name
+FROM wikipedia_clickstream;
+
+-- Theta Sketch Demo
+
+-- Count distinct
+SELECT 
+distinctCountThetaSketch(referrer) AS num_referrer
+FROM wikipedia_clickstream;
+
+SELECT
+distinctCountThetaSketch(referrer, 'nominalEntries=8192') AS num_referrer
+FROM wikipedia_clickstream;
+
+-- Set operations : Difference in count of referrers of articles on Aristotle based on link type
+SELECT 
+count(distinct(referrer)) AS num_internal_referrers
+FROM wikipedia_clickstream 
+WHERE
+article_name = 'Aristotle' AND link_type='link';
+
+SELECT 
+count(distinct(referrer)) AS num_external_referrers
+FROM wikipedia_clickstream 
+WHERE article_name = 'Aristotle' AND link_type='external';
+
+SELECT distinctCountThetaSketch(
+  referrer, 
+  'nominalEntries=4096', 
+  'link_type = ''link'' AND article_name = ''Aristotle'' ',
+  'link_type = ''external'' AND article_name = ''Aristotle''',
+  'SET_DIFF($1, $2)'
+) AS value
+FROM wikipedia_clickstream 
+WHERE link_type IN ('link','external');
+```
+
+### Final Superset Dashboard
+
+![Superset Pinot Dashboard](ingestion-demos/streaming/images/wikipedia-clickstream-dashboard.jpg)
+
+## Teardown
+
+```shell
+docker-compose -f pinot/pinot-standalone.yml down
+
+docker-compose -f ancillary/ancillary-components.yml down
+```
+
+## References
+
 https://docs.pinot.apache.org/basics/getting-started
 
 https://docs.pinot.apache.org/basics/getting-started/pushing-your-data-to-pinot

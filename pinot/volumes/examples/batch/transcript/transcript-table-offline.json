@@ -1,0 +1,30 @@
+{
+    "tableName": "transcript",
+    "tableType": "OFFLINE",
+    "segmentsConfig": {
+      "schemaName" : "transcript",
+      "replication": 1,
+      "timeColumnName": "timestampInEpoch",
+      "timeType": "MILLISECONDS",
+      "retentionTimeUnit": "DAYS",
+      "retentionTimeValue": 365
+    },
+    "tenants": {
+      "broker":"DefaultTenant",
+      "server":"DefaultTenant"
+    },
+    "tableIndexConfig": {
+      "loadMode": "MMAP"
+    },
+    "ingestionConfig": {
+      "batchIngestionConfig": {
+        "segmentIngestionType": "APPEND",
+        "segmentIngestionFrequency": "DAILY"
+      },
+      "continueOnError": true,
+      "rowTimeValueCheck": true,
+      "segmentTimeValueCheck": false
+  
+    },
+    "metadata": {}
+ }

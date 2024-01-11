@@ -1,0 +1,43 @@
+{
+   "tableName": "transcript",
+   "tableType": "REALTIME",
+   "segmentsConfig": {
+     "timeColumnName": "timestamp",
+     "timeType": "MILLISECONDS",
+     "schemaName": "transcript",
+     "replicasPerPartition": "1"
+   },
+   "tenants": {},
+   "tableIndexConfig": {
+     "loadMode": "MMAP"
+   },
+   "metadata": {
+     "customConfigs": {}
+   },
+   "ingestionConfig": {
+     "streamIngestionConfig": {
+         "streamConfigMaps": [
+           {
+             "realtime.segment.flush.threshold.rows": "0",
+             "stream.kafka.decoder.prop.format": "JSON",
+             "key.serializer": "org.apache.kafka.common.serialization.ByteArraySerializer",
+             "stream.kafka.decoder.class.name": "org.apache.pinot.plugin.stream.kafka.KafkaJSONMessageDecoder",
+             "streamType": "kafka",
+             "value.serializer": "org.apache.kafka.common.serialization.ByteArraySerializer",
+             "stream.kafka.consumer.type": "LOWLEVEL",
+             "stream.kafka.broker.list": "kafka:19092",
+             "realtime.segment.flush.threshold.segment.rows": "20",
+             "realtime.segment.flush.threshold.time": "5m",
+             "stream.kafka.consumer.factory.class.name": "org.apache.pinot.plugin.stream.kafka20.KafkaConsumerFactory",
+             "stream.kafka.consumer.prop.auto.offset.reset": "smallest",
+             "stream.kafka.topic.name": "transcript"
+           }
+         ]
+       },
+       "transformConfigs": [],
+       "continueOnError": true,
+       "rowTimeValueCheck": true,
+       "segmentTimeValueCheck": false
+     },
+     "isDimTable": false
+   }
