@@ -5,7 +5,7 @@ Stream processing poses particular challenges when it comes to producing summari
 
 Distributed computing, when operating on a continuous flow of data is often considered a special beast in that it’s constrained by a triangle of concepts:
 
-1. **Exactness
+1. **Exactness**
 	- We can see exact computation as the reflection of the need to produce a precise numerical result answering a question that we ask from our data. 
 2. **Real-Time Processing**
 	- The second aspect is the freshness or latency of that analysis. 

@@ -1,6 +1,8 @@
 ## Architecture for Demo
 
-![](images/architectue_for_demo.png)
+![](../images/architectue_for_demo.png)
+
+
 ### Data flow
 - Raw data flows to the first Kafka topic from source system
 	- This topic would typically have a longer retention period to aid re-processing

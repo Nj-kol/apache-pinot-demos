@@ -9,7 +9,8 @@ First, ***we want to be able to see what’s happening with the device right now
 #### Access pattern 2 : Analytics
 The other access pattern is ***analytics***; we have data analysts who are looking for trends in data to gain new insights to understand and report on device performance, studying, for example, things like battery usage and optimization.
 
-![](gla_1.jpg)
+![](../images/gla_1.jpg)
+
 ### Storage layer capabilities
 
 To serve these basic access patterns the ***storage layer needs the following capabilities:***
@@ -24,6 +25,7 @@ Taken separately, the Hadoop storage layers can handle fast inserts, low-latency
 - Fast analytics : HDFS
 
 The trouble comes when you ask for all those things: row-by-row inserts, random-reads, fast scan, and updates —all in one. This realization to accommodate these access patterns from a single storage layer, this led to the emergence of the the Lambda Architecture
+
 ## The emergence of Greek Letter Architectures
 
 ### Lambda Architecture
@@ -38,20 +40,19 @@ All data coming into the system goes through these two paths:
 
 The final layer in this architecture is the ***serving Layer***. It is typically implemented as a layer on top of the batch and stream processing layers and is responsible for serving query results to users in real time.
 
-![](gla_2.jpg)
-
-			`Common lambda Architecture on Hadoop based systems`
+![](../images/gla_2.jpg)
 
 #### Issues
 
 A drawback to the lambda architecture is its complexity. Processing logic appears in two different places — the cold and hot paths — using different frameworks. This leads to duplicate computation logic and the complexity of managing the architecture for both paths.
+
 ### Kappa Architecture
 
 Kappa Architecture is a variant of the Lambda Architecture that has gained popularity in the big data world.  It was introduced by Jay Kreps in 2014, and since then, it has become a standard for processing real-time data streams. 
 
 Kappa is more simpler in terms of layers :
 
-![](kappa_1.jpg)
+![](../images/kappa_1.jpg)
 
 1. **Ingestion Layer:** 
   - This layer is responsible for collecting data from various sources, such as log files, IoT devices, or other streaming sources.
@@ -71,13 +72,14 @@ Kappa is more simpler in terms of layers :
 * In other cases, ***referential data*** is required. Referential features might include things like a customer’s account information or the location of an IP address
 * Fraud detection, for example, relies heavily on both historical and referential data. 
 
-![](rt_flow.jpg)
+![](../images/rt_flow.jpg)
   
 Although processing frameworks like Apache Flume, Storm, Spark Streaming, and Flink provide the ability to  read and process events in real time, they rely on external systems for :
   1. For storage
   2. Access of external context
 
 For example, when using Spark Streaming, you could read micro-batches of events from Kafka every few seconds.  If you wanted to be able to save results, read external context, calculate a risk score, and update a patient profile, you now have a diverse set of storage demands.
+
 ## Tiered storage : best of both worlds? 
 - Tiered storage is a method of storing data in different storage tiers, based on the access patterns and performance requirements of the data. 
 - The idea behind tiered storage is to optimize storage costs and performance by storing different types of data on the most appropriate storage tier. 
